@@ -1,0 +1,11 @@
+{
+  "name": "clothes-shop",
+  "version": "1.0.0",
+  "scripts": {
+    "deploy": "gh-pages -d . -s \"*.html\""
+  },
+  "homepage": "https://4ertopolohh.github.io/clothes-shop/",
+  "devDependencies": {
+    "gh-pages": "^6.3.0"
+  }
+}
