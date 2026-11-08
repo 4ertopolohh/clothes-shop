@@ -1,0 +1,5 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ title }} · ATELIER NOIR{% endblock %}
+{% block branding %}<div id="site-name"><a href="{% url 'admin:index' %}">ATELIER NOIR <span style="font-size:12px;opacity:.7">Управление магазином</span></a></div>{% endblock %}
+{% block extrastyle %}{{ block.super }}<style>:root{--primary:#373833;--secondary:#22231f;--accent:#e1dace;--header-bg:#22231f;--link-fg:#625849;--selected-bg:#e9e6df;--selected-row:#f4f1eb;--button-bg:#373833;--button-hover-bg:#57584f;--default-button-bg:#22231f;--default-button-hover-bg:#44453f}#header{padding:22px 30px}.module h2,.module caption{letter-spacing:.02em}.local-mode{padding:12px 30px;background:#eee5ce;color:#493e20;font-size:13px;border-bottom:1px solid #d4c5a4}input,select,textarea{border-radius:4px!important}</style>{% endblock %}
+{% block nav-global %}{% if local_test_mode %}<span style="padding:6px 12px;background:#e6dbc0;color:#302d25;border-radius:4px">Локальный тестовый режим · без реальных отправок и платежей</span>{% endif %}{% endblock %}

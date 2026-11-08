@@ -1,0 +1,20 @@
+{{ store.brand }}
+{% if event == 'paid' %}Оплата получена{% else %}Заказ оформлен{% endif %} · {{ order.number }}
+
+{{ order.name }}, спасибо за ваш выбор.
+{% for item in order.items.all %}
+{{ item.name }} · {{ item.color }} · {{ item.size }} × {{ item.quantity }} — {{ item.line_total|floatformat:2 }} ₽{% endfor %}
+
+Сумма товаров: {{ order.subtotal|floatformat:2 }} ₽
+Скидка: {{ order.discount|floatformat:2 }} ₽
+Доставка: {{ order.shipping_cost|floatformat:2 }} ₽
+Итого: {{ order.total|floatformat:2 }} ₽
+
+{{ order.get_delivery_method_display }}: {{ order.delivery_address }}
+Срок: {{ order.delivery_days }}
+{% if audience == 'customer' %}Ваш заказ: {{ order_url }}{% else %}Покупатель: {{ order.name }}
+Телефон: {{ order.phone }}
+Email: {{ order.email }}{% endif %}
+{% if order.comment %}Комментарий: {{ order.comment }}{% endif %}
+
+Вопросы по заказу: {{ store.email }}
