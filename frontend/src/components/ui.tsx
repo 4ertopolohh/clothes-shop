@@ -153,11 +153,13 @@ export function Drawer({
   children,
   onClose,
   wide = false,
+  fullscreen = false,
 }: {
   title: string;
   children: ReactNode;
   onClose: () => void;
   wide?: boolean;
+  fullscreen?: boolean;
 }) {
   const panel = useRef<HTMLDivElement>(null);
   const close = useRef(onClose);
@@ -215,7 +217,7 @@ export function Drawer({
     >
       <div
         ref={panel}
-        className={cx("panel", wide && "wide-panel")}
+        className={cx("panel", wide && "wide-panel", fullscreen && "fullscreen-panel")}
         role="dialog"
         aria-modal="true"
         aria-labelledby={id}

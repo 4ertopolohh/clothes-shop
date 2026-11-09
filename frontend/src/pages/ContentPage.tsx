@@ -37,7 +37,7 @@ export function ContentPage({ page }: { page?: string }) {
                   <p key={i}>{text}</p>
                 ))}
             </div>
-            <Link className={cx("back-link")} to="/#catalog">
+            <Link className={cx("back-link")} to="/catalog">
               К коллекции
             </Link>
           </>

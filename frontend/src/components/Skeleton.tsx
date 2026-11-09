@@ -56,7 +56,7 @@ export function SmartImage({
   eager?: boolean;
 }) {
   const [loaded, setLoaded] = useState(false),
-    [failed, setFailed] = useState(false);
+    [failed, setFailed] = useState(!src);
   return (
     <span className={s.media}>
       {!loaded && !failed && <Skeleton kind="fill" />}

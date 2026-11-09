@@ -193,7 +193,7 @@ export function CartDrawer() {
           <p>Вещи, которые вы выберете, появятся здесь.</p>
           <Link
             className={cx("primary-btn")}
-            to="/#catalog"
+            to="/catalog"
             onClick={() => cart.setOpen(false)}
           >
             К коллекции

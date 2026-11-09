@@ -2,9 +2,13 @@ import { Link } from "react-router-dom";
 import { useStore } from "../app/StoreContext";
 import { cx, Reveal, ErrorState } from "../components/ui";
 import { Skeleton, SmartImage } from "../components/Skeleton";
-import { Catalog } from "../features/catalog/Catalog";
+import { ProductCard } from "../features/catalog/ProductCard";
+import { useResource } from "../hooks/useResource";
+import type { CatalogResponse } from "../types";
+import { CatalogSkeleton } from "../components/Skeleton";
 export function HomePage() {
   const { data: store, error, retry } = useStore();
+  const news = useResource<CatalogResponse>("/catalog/?new=1&page=1");
   return (
     <>
       {error && <ErrorState error={error} retry={retry} />}
@@ -38,7 +42,7 @@ export function HomePage() {
                 <Skeleton />
               </>
             )}
-            <Link className={cx("outline-light")} to="/#catalog">
+            <Link className={cx("outline-light")} to="/catalog">
               Исследовать коллекцию
             </Link>
           </div>
@@ -57,7 +61,11 @@ export function HomePage() {
         <span>Добавляйте несколько вещей в корзину</span>
         <span>Выбирайте удобный способ доставки</span>
       </div>
-      <Catalog />
+      <section className={cx("catalog-section", "shell")} aria-labelledby="new-title">
+        <Reveal className={cx("catalog-heading")}><h2 id="new-title" className={cx("section-title")}>Новинки</h2><Link className={cx("link-btn")} to="/catalog?new=1">Все новинки</Link></Reveal>
+        {news.loading ? <CatalogSkeleton /> : news.error ? <ErrorState error={news.error} retry={news.retry} /> : news.data?.results.length ? <div className={cx("products")}>{news.data.results.slice(0, 6).map(product => <ProductCard key={product.id} product={product} />)}</div> : <p>Новые вещи скоро появятся здесь.</p>}
+        <Link className={cx("show-more")} to="/catalog">Смотреть все товары</Link>
+      </section>
       <section
         className={cx("editorial", "shell")}
         id="manifesto"
@@ -80,7 +88,7 @@ export function HomePage() {
                 <Skeleton />
               </>
             )}
-            <Link to="/#catalog">Посмотреть коллекцию</Link>
+            <Link to="/catalog">Посмотреть коллекцию</Link>
           </div>
         </Reveal>
         <div className={cx("editorial-image")}>

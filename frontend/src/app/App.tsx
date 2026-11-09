@@ -5,8 +5,9 @@ import {
   type ReactNode,
   type ErrorInfo,
 } from "react";
-import { Routes, Route, useLocation, type Location } from "react-router-dom";
+import { Routes, Route,  } from "react-router-dom";
 import { Layout } from "../components/Layout";
+import { Catalog } from "../features/catalog/Catalog";
 import { HomePage } from "../pages/HomePage";
 import { ContentPage, ContactsPage, NotFound } from "../pages/ContentPage";
 import { PageSkeleton } from "../components/Skeleton";
@@ -47,9 +48,6 @@ export class ErrorBoundary extends Component<
   }
 }
 export function App() {
-  const location = useLocation();
-  const background = (location.state as { background?: Location } | null)
-    ?.background;
   return (
     <Layout>
       <Suspense
@@ -59,8 +57,9 @@ export function App() {
           </div>
         }
       >
-        <Routes location={background ?? location}>
+        <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/catalog" element={<Catalog />} />
           <Route path="/product/:slug" element={<ProductPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/order/:token" element={<OrderPage />} />
@@ -70,11 +69,6 @@ export function App() {
           <Route path="/documents/:slug" element={<ContentPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
-        {background && (
-          <Routes>
-            <Route path="/product/:slug" element={<ProductPage modal />} />
-          </Routes>
-        )}
       </Suspense>
     </Layout>
   );

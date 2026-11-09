@@ -23,7 +23,7 @@ class IntegrationSettings(Singleton):
     )
     site_url = models.URLField(
         "Адрес витрины",
-        default="http://127.0.0.1:5177",
+        default="http://127.0.0.1:5173",
         help_text="В production — HTTPS. Адрес возврата после оплаты формируется автоматически.",
     )
     receipts_enabled = models.BooleanField(

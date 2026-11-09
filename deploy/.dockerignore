@@ -1,0 +1,10 @@
+data
+.env
+frontend
+.git
+**/.env
+**/.local
+**/.venv
+**/db.sqlite3*
+**/media
+**/__pycache__

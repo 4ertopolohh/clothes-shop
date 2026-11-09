@@ -1,13 +1,33 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useCart } from "../features/cart/CartContext";
 import { request, post } from "../api/client";
-import type { City, Pickup, Quote, Order } from "../types";
+import type { City, Pickup, Quote, Order, Product, CartLine } from "../types";
 import { cx, ErrorState, Select, fmt } from "../components/ui";
 import { Skeleton, Spinner } from "../components/Skeleton";
 export function CheckoutPage() {
   const cart = useCart(),
     navigate = useNavigate();
+  const [params] = useSearchParams();
+  const buyNow = params.get("mode") === "buy-now";
+  const slug = params.get("product") ?? "";
+  const variantText = params.get("variant") ?? "";
+  const quantityText = params.get("quantity") ?? "";
+  const validParams = /^[a-zA-Z0-9_-]+$/.test(slug) && /^[1-9]\d*$/.test(variantText) && /^[1-9]\d*$/.test(quantityText) && Number.isSafeInteger(Number(variantText)) && Number(quantityText) <= 30;
+  const [quickProduct, setQuickProduct] = useState<Product>();
+  const [quickError, setQuickError] = useState<Error>();
+  const [quickLoading, setQuickLoading] = useState(buyNow && validParams);
+  useEffect(() => {
+    if (!buyNow || !validParams) return;
+    const controller = new AbortController();
+    setQuickLoading(true); setQuickError(undefined); setQuickProduct(undefined);
+    request<Product>("/products/" + encodeURIComponent(slug) + "/", { signal: controller.signal }).then(setQuickProduct).catch((e: Error) => { if (e.name !== "AbortError") setQuickError(e); }).finally(() => { if (!controller.signal.aborted) setQuickLoading(false); });
+    return () => controller.abort();
+  }, [buyNow, slug, variantText, quantityText, validParams]);
+  const variant = quickProduct?.variants.find(v => v.id === Number(variantText));
+  const quickValid = !!variant && variant.available >= Number(quantityText);
+  const lines: CartLine[] = buyNow ? (quickProduct && quickValid ? [{ product: quickProduct, variant_id: Number(variantText), quantity: Number(quantityText) }] : []) : cart.lines;
+  const promo = buyNow ? "" : cart.promo;
   const key = useRef(crypto.randomUUID());
   const submitting = useRef(false);
   const [cityQuery, setCityQuery] = useState(""),
@@ -81,16 +101,16 @@ export function CheckoutPage() {
     return () => abort.abort();
   }, [city, method, revision]);
   const payload = JSON.stringify({
-    items: cart.lines.map((x) => ({
+    items: lines.map((x) => ({
       variant_id: x.variant_id,
       quantity: x.quantity,
     })),
-    promo: cart.promo,
+    promo,
     city_code: city?.code,
     delivery_method: method,
   });
   useEffect(() => {
-    if (!cart.lines.length) return;
+    if (!lines.length) return;
     const abort = new AbortController();
     setQuoteLoading(true);
     setQuoteError(undefined);
@@ -106,13 +126,14 @@ export function CheckoutPage() {
         }
       });
     return () => abort.abort();
-  }, [payload, cart.lines.length, revision]);
-  if (!cart.lines.length)
+  }, [payload, lines.length, revision]);
+  if (buyNow && (quickLoading || !validParams || quickError || !quickValid)) return <section className={cx("content-page", "shell")}><h1>Быстрая покупка</h1>{quickLoading ? <Skeleton kind="block" /> : <><p role="alert">Не удалось выбрать товар: проверьте ссылку и наличие варианта.</p><Link className={cx("primary-btn")} to={validParams ? "/product/" + encodeURIComponent(slug) : "/catalog"}>Вернуться к выбору</Link></>}</section>;
+  if (!lines.length)
     return (
       <section className={cx("content-page", "shell")}>
         <h1>Корзина пока пуста</h1>
         <p>Выберите вещи, чтобы перейти к оформлению.</p>
-        <Link className={cx("primary-btn")} to="/#catalog">
+        <Link className={cx("primary-btn")} to="/catalog">
           К коллекции
         </Link>
       </section>
@@ -147,7 +168,7 @@ export function CheckoutPage() {
                 comment: form.get("comment"),
                 consent: form.get("consent") === "on",
               });
-              cart.clear();
+              if (!buyNow) cart.clear();
               navigate("/order/" + order.token, { replace: true });
             } catch (e) {
               setError(e as Error);
@@ -409,7 +430,7 @@ export function CheckoutPage() {
         </form>
         <aside className={cx("order-summary")} aria-label="Ваш заказ">
           <h2>Ваш выбор</h2>
-          {cart.lines.map((x) => (
+          {lines.map((x) => (
             <div className={cx("summary-item")} key={x.variant_id}>
               <span>
                 {x.product.name}
@@ -442,7 +463,7 @@ export function CheckoutPage() {
                 </div>
                 {Number(quote.discount) > 0 && (
                   <div className={cx("cart-row")}>
-                    <span>Скидка {cart.promo}</span>
+                    <span>Скидка {promo}</span>
                     <span>−{fmt(quote.discount)}</span>
                   </div>
                 )}

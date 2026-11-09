@@ -9,7 +9,8 @@ execFileSync(
   ["run", "python", "manage.py", "export_public", "--output", snapshot],
   { cwd: resolve(root, "../backend"), stdio: "inherit" },
 );
-const { data, site_url } = JSON.parse(await readFile(snapshot, "utf8"));
+const { data, site_url: exportedSiteUrl } = JSON.parse(await readFile(snapshot, "utf8"));
+const site_url = process.env.PUBLIC_SITE_URL || exportedSiteUrl;
 const { render } = await import(
   pathToFileURL(resolve(root, ".ssr/entry-server.js")).href
 );
@@ -17,6 +18,7 @@ const template = await readFile(resolve(root, "dist/index.html"), "utf8");
 const settings = data["/settings/"];
 const routes = [
   ["/", "ATELIER NOIR — Contemporary Uniform", settings.hero_text],
+  ["/catalog", "Каталог · ATELIER NOIR", "Коллекция ATELIER NOIR."],
   [
     "/contacts",
     "Контакты · ATELIER NOIR",
@@ -50,7 +52,8 @@ const escape = (value) =>
 const json = (value) => JSON.stringify(value).replace(/</g, "\\u003c");
 for (const [route, title, description] of routes) {
   const subset = { "/settings/": settings };
-  if (route === "/") {
+  if (route === "/") subset["/catalog/?new=1&page=1"] = data["/catalog/?new=1&page=1"];
+  if (route === "/catalog") {
     subset["/catalog/facets/"] = data["/catalog/facets/"];
     subset["/catalog/?&page=1"] = data["/catalog/?&page=1"];
   }

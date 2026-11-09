@@ -1,15 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useResource } from "../hooks/useResource";
 import type { Product } from "../types";
 import { useCart } from "../features/cart/CartContext";
 import { cx, fmt, Drawer, ErrorState } from "../components/ui";
 import { PageSkeleton, SmartImage, Skeleton } from "../components/Skeleton";
-export function ProductPage({ modal = false }: { modal?: boolean }) {
+export function ProductPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const resource = useResource<Product>("/products/" + slug + "/");
   const cart = useCart();
+  const [lightbox, setLightbox] = useState(false);
+  const touch = useRef<number | null>(null);
   const [color, setColor] = useState(""),
     [size, setSize] = useState(""),
     [quantity, setQuantity] = useState(1),
@@ -38,6 +40,17 @@ export function ProductPage({ modal = false }: { modal?: boolean }) {
   const selected = product?.variants.find(
     (v) => v.color === color && v.size === size,
   );
+  const movePhoto = (direction: number) => setPhoto((current) => product?.images.length ? (current + direction + product.images.length) % product.images.length : 0);
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "ArrowLeft") movePhoto(-1);
+      if (event.key === "ArrowRight") movePhoto(1);
+    };
+    if (lightbox) window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [lightbox, product]);
+  const galleryImage = product?.images[photo];
+  const controls = product && product.images.length > 1 && <div className={cx("gallery-controls")}><button type="button" onClick={() => movePhoto(-1)} aria-label="Предыдущее фото">←</button><span aria-live="polite">{photo + 1} / {product.images.length}</span><button type="button" onClick={() => movePhoto(1)} aria-label="Следующее фото">→</button></div>;
   const content = resource.loading ? (
     <div className={cx("product-detail")}>
       <div className={cx("detail-visual")}>
@@ -54,12 +67,10 @@ export function ProductPage({ modal = false }: { modal?: boolean }) {
       <>
         <div className={cx("product-detail")}>
           <div className={cx("detail-visual")}>
-            <SmartImage
-              key={product.images[photo]?.url}
-              src={product.images[photo]?.url ?? ""}
-              alt={product.images[photo]?.alt ?? product.name}
-              eager
-            />
+            <div className={cx("gallery-main")} onTouchStart={(e) => { touch.current = e.touches[0].clientX; }} onTouchEnd={(e) => { if (touch.current !== null && Math.abs(e.changedTouches[0].clientX - touch.current) > 50) movePhoto(e.changedTouches[0].clientX < touch.current ? 1 : -1); touch.current = null; }} onKeyDown={(e) => { if (e.key === "ArrowLeft") movePhoto(-1); if (e.key === "ArrowRight") movePhoto(1); }}>
+              <button className={cx("gallery-image")} type="button" disabled={!galleryImage} onClick={() => setLightbox(true)} aria-label="Открыть фотографию на весь экран"><SmartImage key={galleryImage?.url} src={galleryImage?.url ?? ""} alt={galleryImage?.alt ?? product.name} eager /></button>
+              {controls}
+            </div>
             {product.images.length > 1 && (
               <div className={cx("thumbnails")}>
                 {product.images.map((image, i) => (
@@ -76,7 +87,7 @@ export function ProductPage({ modal = false }: { modal?: boolean }) {
             )}
           </div>
           <div className={cx("detail-info")}>
-            {!modal && <h1 className={cx("product-title")}>{product.name}</h1>}
+            <p>{product.category}</p><h1 className={cx("product-title")}>{product.name}</h1>
             <p className={cx("detail-price")}>
               {fmt(selected?.price ?? product.price)}
             </p>
@@ -174,10 +185,13 @@ export function ProductPage({ modal = false }: { modal?: boolean }) {
             >
               Добавить в корзину
             </button>
+            <button className={cx("outline-btn", "full", "buy-now")} disabled={!product.variants.some((v) => v.available > 0)} onClick={() => {
+              if (!selected || selected.available < quantity) { setError("Выберите доступный размер вещи."); return; }
+              navigate(`/checkout?mode=buy-now&product=${encodeURIComponent(product.slug)}&variant=${selected.id}&quantity=${quantity}`);
+            }}>Купить сейчас</button>
             <button
               className={cx("link-btn", "cart-shortcut")}
               onClick={() => {
-                if (modal) navigate(-1);
                 cart.setOpen(true);
               }}
             >
@@ -196,23 +210,9 @@ export function ProductPage({ modal = false }: { modal?: boolean }) {
             </p>
           </div>
         </div>
-        {!modal && (
-          <Link className={cx("back-link")} to="/#catalog">
-            Вернуться к коллекции
-          </Link>
-        )}
+        {lightbox && galleryImage && <Drawer title={`Фотография ${photo + 1} из ${product.images.length}`} fullscreen onClose={() => setLightbox(false)}><div className={cx("lightbox-image")} onTouchStart={(e) => { touch.current = e.touches[0].clientX; }} onTouchEnd={(e) => { if (touch.current !== null && Math.abs(e.changedTouches[0].clientX - touch.current) > 50) movePhoto(e.changedTouches[0].clientX < touch.current ? 1 : -1); touch.current = null; }}><SmartImage key={galleryImage.url} src={galleryImage.url} alt={galleryImage.alt || product.name} eager />{controls}</div></Drawer>}
       </>
     )
   );
-  return modal ? (
-    <Drawer
-      title={product?.name ?? "Выбор вещи"}
-      wide
-      onClose={() => navigate(-1)}
-    >
-      {content}
-    </Drawer>
-  ) : (
-    <section className={cx("product-page", "shell")}>{content}</section>
-  );
+  return <section className={cx("product-page", "shell")}><Link className={cx("back-link")} to="/catalog">← Вернуться к коллекции</Link>{content}</section>;
 }

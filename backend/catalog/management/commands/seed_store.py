@@ -1,4 +1,6 @@
 import json
+from io import BytesIO
+from PIL import Image
 import secrets
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -111,6 +113,15 @@ class Command(BaseCommand):
                     self.stdout.write(
                         f"{name}: исходное фото недоступно, использовано другое фото коллекции."
                     )
+            # Кадрирование исходного снимка только для новых демонстрационных товаров.
+            if created and index < 2 and photos[index]:
+                with Image.open(photos[index]) as original:
+                    width, height = original.size
+                    cropped = original.crop((int(width * .12), int(height * .08), int(width * .88), int(height * .82)))
+                    output = BytesIO()
+                    cropped.save(output, format="WEBP", quality=85)
+                detail = ProductImage(product=product, alt=f"{name} — фрагмент фотографии", position=1)
+                detail.image.save(SLUGS[index] + "-detail.webp", ContentFile(output.getvalue()))
             for color_index, color in enumerate(colors.split(",")):
                 for size in sizes.split(","):
                     Variant.objects.get_or_create(

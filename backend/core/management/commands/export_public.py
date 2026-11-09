@@ -2,7 +2,8 @@ import json
 from pathlib import Path
 from django.core.management.base import BaseCommand
 from core.api import SettingsView
-from catalog.api import FacetsView, product_data
+from catalog.api import FacetsView, CatalogView, product_data
+from rest_framework.test import APIRequestFactory
 from catalog.models import Product
 from core.models import Page
 from integrations.models import IntegrationSettings
@@ -30,6 +31,9 @@ class Command(BaseCommand):
                 "results": products[:9],
             },
         }
+        factory = APIRequestFactory()
+        for query, key in [("", "/catalog/?&page=1"), ("new=1&page=1", "/catalog/?new=1&page=1")]:
+            data[key] = CatalogView.as_view()(factory.get("/api/catalog/?" + query)).data
         for product in products:
             data["/products/" + product["slug"] + "/"] = product
         for page in Page.objects.filter(published=True):

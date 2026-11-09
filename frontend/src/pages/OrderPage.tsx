@@ -132,7 +132,7 @@ export function OrderPage({
                   Проверить статус
                 </button>
               )}
-              <Link className={cx("link-btn")} to="/#catalog">
+              <Link className={cx("link-btn")} to="/catalog">
                 Вернуться к коллекции
               </Link>
             </div>

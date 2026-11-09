@@ -18,7 +18,6 @@ export function Layout({ children }: { children: ReactNode }) {
     [query, setQuery] = useState("");
   useEffect(() => {
     setMenu(false);
-    if ((location.state as { background?: unknown } | null)?.background) return;
     const pathChanged = previousPath.current !== location.pathname;
     previousPath.current = location.pathname;
     if (location.hash) {
@@ -37,8 +36,8 @@ export function Layout({ children }: { children: ReactNode }) {
   }, [location.pathname, location.hash]);
   const links = (
     <>
-      <Link to="/#catalog">Каталог</Link>
-      <Link to="/?new=1#catalog">Новинки</Link>
+      <Link to="/catalog">Каталог</Link>
+      <Link to="/catalog?new=1">Новинки</Link>
       <Link to="/#manifesto">О бренде</Link>
       <Link to="/delivery">Доставка</Link>
     </>
@@ -115,7 +114,7 @@ export function Layout({ children }: { children: ReactNode }) {
             className={cx("searchbar", "shell")}
             onSubmit={(e) => {
               e.preventDefault();
-              navigate("/?q=" + encodeURIComponent(query) + "#catalog");
+              navigate("/catalog?q=" + encodeURIComponent(query));
             }}
           >
             <label htmlFor="site-search">Найти вещь</label>
@@ -133,7 +132,7 @@ export function Layout({ children }: { children: ReactNode }) {
               type="button"
               onClick={() => {
                 setQuery("");
-                navigate("/#catalog");
+                navigate("/catalog");
               }}
             >
               Очистить
@@ -158,7 +157,7 @@ export function Layout({ children }: { children: ReactNode }) {
             </div>
             <div className={cx("footer-col")}>
               <h3>Магазин</h3>
-              <Link to="/#catalog">Коллекция</Link>
+              <Link to="/catalog">Коллекция</Link>
               <Link to="/#manifesto">О бренде</Link>
               <Link to="/delivery">Доставка и оплата</Link>
               <Link to="/contacts">Контакты</Link>
