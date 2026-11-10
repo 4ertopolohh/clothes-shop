@@ -2,8 +2,9 @@ import { useState, useEffect, useRef, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useStore } from "../app/StoreContext";
 import { useCart } from "../features/cart/CartContext";
-import { cx } from "./ui";
+import { cx, Logo } from "./ui";
 import { Skeleton, SiteLoader } from "./Skeleton";
+import { usePageMotion } from "../hooks/usePageMotion";
 import { CartDrawer } from "../features/cart/CartDrawer";
 export function Layout({ children }: { children: ReactNode }) {
   const [mounted, setMounted] = useState(false);
@@ -11,6 +12,7 @@ export function Layout({ children }: { children: ReactNode }) {
   const { data: store } = useStore();
   const cart = useCart();
   const location = useLocation();
+  usePageMotion(location.pathname);
   const previousPath = useRef("");
   const navigate = useNavigate();
   const [menu, setMenu] = useState(false),
@@ -34,6 +36,9 @@ export function Layout({ children }: { children: ReactNode }) {
     }
     if (pathChanged) window.scrollTo(0, 0);
   }, [location.pathname, location.hash]);
+  useEffect(() => {
+    if (search) document.getElementById("site-search")?.focus();
+  }, [search]);
   const links = (
     <>
       <Link to="/catalog">Каталог</Link>
@@ -69,8 +74,7 @@ export function Layout({ children }: { children: ReactNode }) {
             to="/"
             aria-label="ATELIER NOIR — на главную"
           >
-            {store?.brand ?? "ATELIER NOIR"}
-            <small>{store?.tagline ?? "CONTEMPORARY UNIFORM"}</small>
+            <Logo />
           </Link>
           <div className={cx("header-actions")}>
             <button
@@ -86,7 +90,10 @@ export function Layout({ children }: { children: ReactNode }) {
               aria-label="Открыть корзину"
             >
               Корзина{" "}
-              <span className={cx("bag-count")}>
+              <span
+                key={cart.lines.reduce((sum, x) => sum + x.quantity, 0)}
+                className={cx("bag-count")}
+              >
                 {cart.lines.reduce((sum, x) => sum + x.quantity, 0)}
               </span>
             </button>
@@ -109,39 +116,38 @@ export function Layout({ children }: { children: ReactNode }) {
             Поиск по каталогу
           </button>
         </nav>
-        {search && (
-          <form
-            className={cx("searchbar", "shell")}
-            onSubmit={(e) => {
-              e.preventDefault();
-              navigate("/catalog?q=" + encodeURIComponent(query));
+        <form
+          hidden={!search}
+          inert={!search}
+          className={cx("searchbar", "shell")}
+          onSubmit={(e) => {
+            e.preventDefault();
+            navigate("/catalog?q=" + encodeURIComponent(query));
+          }}
+        >
+          <label htmlFor="site-search">Найти вещь</label>
+          <input
+            className={cx("input")}
+            id="site-search"
+            type="search"
+            placeholder="Название вещи"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          <button type="submit">Найти</button>
+          <button
+            type="button"
+            onClick={() => {
+              setQuery("");
+              navigate("/catalog");
             }}
           >
-            <label htmlFor="site-search">Найти вещь</label>
-            <input
-              className={cx("input")}
-              id="site-search"
-              autoFocus
-              type="search"
-              placeholder="Название вещи"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-            <button type="submit">Найти</button>
-            <button
-              type="button"
-              onClick={() => {
-                setQuery("");
-                navigate("/catalog");
-              }}
-            >
-              Очистить
-            </button>
-            <button type="button" onClick={() => setSearch(false)}>
-              Закрыть
-            </button>
-          </form>
-        )}
+            Очистить
+          </button>
+          <button type="button" onClick={() => setSearch(false)}>
+            Закрыть
+          </button>
+        </form>
       </div>
       <main id="main">{children}</main>
       <footer className={cx("footer")}>
@@ -149,7 +155,7 @@ export function Layout({ children }: { children: ReactNode }) {
           <div className={cx("footer-upper")}>
             <div>
               <div className={cx("footer-brand")}>
-                {store?.brand ?? "ATELIER NOIR"}
+                <Logo variant="footer" />
               </div>
               <p className={cx("footer-brand-sub")}>
                 Одежда, свободная от лишнего.

@@ -14,12 +14,7 @@ import {
   Drawer,
   itemCount,
 } from "../../components/ui";
-import {
-  Skeleton,
-  CatalogSkeleton,
-  Spinner,
-} from "../../components/Skeleton";
-
+import { Skeleton, CatalogSkeleton, Spinner } from "../../components/Skeleton";
 
 export function Catalog() {
   const [params, setParams] = useSearchParams();
@@ -258,8 +253,12 @@ export function Catalog() {
               <CatalogSkeleton />
             ) : result?.results.length ? (
               <div className={cx("products")}>
-                {result.results.map((product) => (
-                  <ProductCard product={product} key={product.id} />
+                {result.results.map((product, index) => (
+                  <ProductCard
+                    product={product}
+                    index={index}
+                    key={product.id}
+                  />
                 ))}
               </div>
             ) : (

@@ -1,4 +1,11 @@
-import { useEffect, useRef, useId, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useId,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import styles from "../styles/Shop.module.scss";
 import { createPortal } from "react-dom";
 let drawerCount = 0;
@@ -162,8 +169,24 @@ export function Drawer({
   fullscreen?: boolean;
 }) {
   const panel = useRef<HTMLDivElement>(null);
-  const close = useRef(onClose);
-  close.current = onClose;
+  const [closing, setClosing] = useState(false);
+  const closingRef = useRef(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const callback = useRef(onClose);
+  callback.current = onClose;
+  const requestClose = () => {
+    if (closingRef.current) return;
+    closingRef.current = true;
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      callback.current();
+      return;
+    }
+    setClosing(true);
+    timer.current = setTimeout(() => callback.current(), 300);
+  };
+  const close = useRef(requestClose);
+  close.current = requestClose;
+  useEffect(() => () => clearTimeout(timer.current), []);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement;
     if (drawerCount === 0) savedOverflow = document.body.style.overflow;
@@ -210,14 +233,18 @@ export function Drawer({
   const id = useId();
   return createPortal(
     <div
-      className={cx("overlay")}
+      className={cx("overlay", closing && "closing")}
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) requestClose();
       }}
     >
       <div
         ref={panel}
-        className={cx("panel", wide && "wide-panel", fullscreen && "fullscreen-panel")}
+        className={cx(
+          "panel",
+          wide && "wide-panel",
+          fullscreen && "fullscreen-panel",
+        )}
         role="dialog"
         aria-modal="true"
         aria-labelledby={id}
@@ -226,7 +253,7 @@ export function Drawer({
           <h2 id={id}>{title}</h2>
           <button
             className={cx("close-btn")}
-            onClick={onClose}
+            onClick={requestClose}
             aria-label="Закрыть панель"
           >
             Закрыть
@@ -238,36 +265,122 @@ export function Drawer({
     document.body,
   );
 }
+type RevealVariant =
+  | "fade-up"
+  | "fade-down"
+  | "fade-left"
+  | "fade-right"
+  | "scale-in"
+  | "image-reveal"
+  | "stagger";
+const observers = new Map<
+  number,
+  {
+    observer: IntersectionObserver;
+    callbacks: Map<Element, (entry: IntersectionObserverEntry) => void>;
+  }
+>();
 export function Reveal({
   children,
   className = "",
+  variant = "fade-up",
+  duration = 750,
+  delay = 0,
+  threshold = 0.12,
+  once = true,
 }: {
   children: ReactNode;
   className?: string;
+  variant?: RevealVariant;
+  duration?: number;
+  delay?: number;
+  threshold?: number;
+  once?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
   useEffect(() => {
     const node = ref.current;
-    if (!node) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((x) => x.isIntersecting)) {
-          setVisible(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: "50px" },
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
+    if (!node || !("IntersectionObserver" in window)) return;
+    const media = matchMedia("(prefers-reduced-motion: reduce)");
+    if (media.matches) return;
+    const level = Math.max(0, Math.min(1, threshold));
+    let pool = observers.get(level);
+    if (!pool) {
+      const callbacks = new Map<
+        Element,
+        (entry: IntersectionObserverEntry) => void
+      >();
+      const observer = new IntersectionObserver(
+        (entries) =>
+          entries.forEach((entry) => callbacks.get(entry.target)?.(entry)),
+        { threshold: level },
+      );
+      pool = { observer, callbacks };
+      observers.set(level, pool);
+    }
+    const current = pool;
+    const release = () => {
+      current.observer.unobserve(node);
+      current.callbacks.delete(node);
+      if (!current.callbacks.size) {
+        current.observer.disconnect();
+        if (observers.get(level) === current) observers.delete(level);
+      }
+    };
+    current.callbacks.set(node, (entry) => {
+      if (entry.isIntersecting) {
+        node.dataset.shown = "true";
+        if (once) release();
+      } else if (
+        !once &&
+        (entry.boundingClientRect.bottom < -80 ||
+          entry.boundingClientRect.top > innerHeight + 80)
+      )
+        node.dataset.shown = "false";
+    });
+    current.observer.observe(node);
+    node.dataset.ready = "true";
+    const show = () => {
+      if (media.matches) {
+        delete node.dataset.ready;
+        release();
+      }
+    };
+    media.addEventListener("change", show);
+    return () => {
+      release();
+      media.removeEventListener("change", show);
+      delete node.dataset.ready;
+    };
+  }, [threshold, once]);
   return (
     <div
       ref={ref}
-      className={`${cx("reveal", visible && "visible")} ${className}`}
+      data-variant={variant}
+      className={`${cx("reveal")} ${className}`}
+      style={
+        {
+          "--reveal-duration": `${duration}ms`,
+          "--reveal-delay": `${delay}ms`,
+        } as CSSProperties
+      }
     >
       {children}
     </div>
+  );
+}
+export function Logo({
+  variant = "header",
+}: {
+  variant?: "header" | "footer" | "hero";
+}) {
+  return (
+    <img
+      className={cx("logo", `logo-${variant}`)}
+      src="/project-logo-02-2048.png"
+      alt={variant === "hero" ? "" : "ATELIER NOIR"}
+      width="2048"
+      height="2048"
+    />
   );
 }

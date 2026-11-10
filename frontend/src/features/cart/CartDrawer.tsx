@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "./CartContext";
 import type { Quote } from "../../types";
@@ -7,6 +7,23 @@ import { cx, Drawer, ErrorState, fmt } from "../../components/ui";
 import { Skeleton, SmartImage, Spinner } from "../../components/Skeleton";
 export function CartDrawer() {
   const cart = useCart();
+  const [removing, setRemoving] = useState<number[]>([]);
+  const removalTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => () => removalTimers.current.forEach(clearTimeout), []);
+  const remove = (id: number) => {
+    if (removing.includes(id)) return;
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      cart.remove(id);
+      return;
+    }
+    setRemoving((current) => [...current, id]);
+    removalTimers.current.push(
+      setTimeout(() => {
+        cart.remove(id);
+        setRemoving((current) => current.filter((value) => value !== id));
+      }, 280),
+    );
+  };
   const navigate = useNavigate();
   const [input, setInput] = useState(cart.promo),
     [quote, setQuote] = useState<Quote>(),
@@ -48,7 +65,13 @@ export function CartDrawer() {
                 (x) => x.id === line.variant_id,
               );
               return (
-                <article className={cx("cart-item")} key={line.variant_id}>
+                <article
+                  className={cx(
+                    "cart-item",
+                    removing.includes(line.variant_id) && "removing",
+                  )}
+                  key={line.variant_id}
+                >
                   <div className={cx("cart-image")}>
                     <SmartImage
                       src={line.product.images[0]?.url ?? ""}
@@ -79,7 +102,7 @@ export function CartDrawer() {
                         >
                           −
                         </button>
-                        <output>{line.quantity}</output>
+                        <output key={line.quantity}>{line.quantity}</output>
                         <button
                           aria-label={
                             "Увеличить количество: " + line.product.name
@@ -100,7 +123,7 @@ export function CartDrawer() {
                     </div>
                     <button
                       className={cx("remove-btn")}
-                      onClick={() => cart.remove(line.variant_id)}
+                      onClick={() => remove(line.variant_id)}
                     >
                       Удалить
                     </button>

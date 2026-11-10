@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import s from "./Skeleton.module.scss";
 import { network } from "../api/client";
 export function Skeleton({
@@ -50,12 +50,14 @@ export function SmartImage({
   src,
   alt,
   eager = false,
+  ready = false,
 }: {
   src: string;
   alt: string;
   eager?: boolean;
+  ready?: boolean;
 }) {
-  const [loaded, setLoaded] = useState(false),
+  const [loaded, setLoaded] = useState(ready),
     [failed, setFailed] = useState(!src);
   return (
     <span className={s.media}>
@@ -74,5 +76,36 @@ export function SmartImage({
         />
       )}
     </span>
+  );
+}
+
+// Keep the current photograph in place until its replacement is ready.
+export function GalleryImage({ src, alt }: { src: string; alt: string }) {
+  const [displayed, setDisplayed] = useState({ src, alt });
+  useEffect(() => {
+    if (!src || displayed.src === src) return;
+    let active = true;
+    const image = new Image();
+    image.onload = () => {
+      if (active) setDisplayed({ src, alt });
+    };
+    image.onerror = () => {
+      if (active) setDisplayed({ src: "", alt });
+    };
+    image.src = src;
+    return () => {
+      active = false;
+      image.onload = null;
+      image.onerror = null;
+    };
+  }, [src, alt, displayed.src]);
+  return (
+    <SmartImage
+      key={displayed.src}
+      src={displayed.src}
+      alt={displayed.alt}
+      eager
+      ready
+    />
   );
 }

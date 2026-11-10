@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useStore } from "../app/StoreContext";
-import { cx, Reveal, ErrorState } from "../components/ui";
+import { cx, Reveal, Logo, ErrorState } from "../components/ui";
 import { Skeleton, SmartImage } from "../components/Skeleton";
 import { ProductCard } from "../features/catalog/ProductCard";
 import { useResource } from "../hooks/useResource";
@@ -13,7 +13,11 @@ export function HomePage() {
     <>
       {error && <ErrorState error={error} retry={retry} />}
       <section className={cx("hero", "shell")} aria-labelledby="hero-title">
-        <div className={cx("hero-image")}>
+        <Reveal
+          variant="image-reveal"
+          duration={1100}
+          className={cx("hero-image", "parallax")}
+        >
           {store ? (
             <SmartImage
               key={store.hero_image}
@@ -24,7 +28,7 @@ export function HomePage() {
           ) : (
             <Skeleton kind="fill" />
           )}
-        </div>
+        </Reveal>
         <div className={cx("hero-copy")}>
           <div />
           <div>
@@ -47,7 +51,9 @@ export function HomePage() {
             </Link>
           </div>
           <div className={cx("hero-bottom")}>
-            <div className={cx("hero-mark")}>AN.</div>
+            <div className={cx("hero-mark")}>
+              <Logo variant="hero" />
+            </div>
             <div className={cx("hero-note")}>
               Тихий характер.
               <br />
@@ -61,17 +67,41 @@ export function HomePage() {
         <span>Добавляйте несколько вещей в корзину</span>
         <span>Выбирайте удобный способ доставки</span>
       </div>
-      <section className={cx("catalog-section", "shell")} aria-labelledby="new-title">
-        <Reveal className={cx("catalog-heading")}><h2 id="new-title" className={cx("section-title")}>Новинки</h2><Link className={cx("link-btn")} to="/catalog?new=1">Все новинки</Link></Reveal>
-        {news.loading ? <CatalogSkeleton /> : news.error ? <ErrorState error={news.error} retry={news.retry} /> : news.data?.results.length ? <div className={cx("products")}>{news.data.results.slice(0, 6).map(product => <ProductCard key={product.id} product={product} />)}</div> : <p>Новые вещи скоро появятся здесь.</p>}
-        <Link className={cx("show-more")} to="/catalog">Смотреть все товары</Link>
+      <section
+        className={cx("catalog-section", "shell")}
+        aria-labelledby="new-title"
+      >
+        <Reveal className={cx("catalog-heading")}>
+          <h2 id="new-title" className={cx("section-title")}>
+            Новинки
+          </h2>
+          <Link className={cx("link-btn")} to="/catalog?new=1">
+            Все новинки
+          </Link>
+        </Reveal>
+        {news.loading ? (
+          <CatalogSkeleton />
+        ) : news.error ? (
+          <ErrorState error={news.error} retry={news.retry} />
+        ) : news.data?.results.length ? (
+          <div className={cx("products")}>
+            {news.data.results.slice(0, 6).map((product, index) => (
+              <ProductCard key={product.id} product={product} index={index} />
+            ))}
+          </div>
+        ) : (
+          <p>Новые вещи скоро появятся здесь.</p>
+        )}
+        <Link className={cx("show-more")} to="/catalog">
+          Смотреть все товары
+        </Link>
       </section>
       <section
         className={cx("editorial", "shell")}
         id="manifesto"
         aria-labelledby="about-title"
       >
-        <Reveal className={cx("editorial-copy")}>
+        <Reveal variant="fade-right" className={cx("editorial-copy")}>
           <div />
           <div>
             {store ? (
@@ -91,7 +121,11 @@ export function HomePage() {
             <Link to="/catalog">Посмотреть коллекцию</Link>
           </div>
         </Reveal>
-        <div className={cx("editorial-image")}>
+        <Reveal
+          variant="image-reveal"
+          duration={950}
+          className={cx("editorial-image", "parallax")}
+        >
           {store ? (
             <SmartImage
               key={store.about_image}
@@ -101,7 +135,7 @@ export function HomePage() {
           ) : (
             <Skeleton kind="fill" />
           )}
-        </div>
+        </Reveal>
       </section>
       <section
         className={cx("delivery-section", "shell")}
@@ -121,7 +155,7 @@ export function HomePage() {
             Подробнее о доставке и оплате
           </Link>
         </Reveal>
-        <Reveal className={cx("details-list")}>
+        <Reveal variant="stagger" className={cx("details-list")}>
           <article>
             <strong>Ваша посадка</strong>
             <p>
